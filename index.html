@@ -1,0 +1,1251 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>JS Iterator Helpers Playground — Dev Toolkit</title>
+<meta name="description" content="ES2025 lazy iterator pipeline — map, filter, take, drop without intermediate arrays. Build, visualize, and compare iterator chains.">
+<meta property="og:title" content="JS Iterator Helpers Playground — Dev Toolkit">
+<meta property="og:description" content="ES2025 lazy iterator pipeline — map, filter, take, drop without intermediate arrays.">
+<meta property="og:type" content="website">
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="630">
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:title" content="JS Iterator Helpers Playground — Dev Toolkit">
+<meta name="twitter:description" content="ES2025 lazy iterator pipeline — map, filter, take, drop without intermediate arrays.">
+<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+:root{--bg:#0a0a0a;--bg-card:#141414;--bg-editor:#1a1a1a;--border:#2a2a2a;--text:#e6e6e6;--text-dim:#888;--accent:#3b82f6;--accent-hover:#2563eb;--green:#22c55e;--yellow:#eab308;--red:#ef4444;--orange:#f97316;--purple:#a855f7;--cyan:#06b6d4;--font-mono:'SF Mono','Fira Code','Cascadia Code',Consolas,monospace}
+body{background:var(--bg);color:var(--text);font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;min-height:100vh;display:flex;flex-direction:column}
+header{padding:16px 24px;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:12px}
+header h1{font-size:18px;font-weight:600;display:flex;align-items:center;gap:10px}
+header h1 span{color:var(--accent)}
+.browser-support{font-size:11px;color:var(--text-dim);background:#1e1e1e;padding:4px 10px;border-radius:6px;border:1px solid var(--border)}
+.browser-support strong{color:var(--green)}
+.browser-support .unsupported{color:var(--red)}
+.toolbar{display:flex;gap:8px;padding:10px 24px;border-bottom:1px solid var(--border);flex-wrap:wrap;align-items:center}
+.toolbar label{font-size:12px;color:var(--text-dim);margin-right:4px}
+.preset-btn,.action-btn{padding:6px 14px;border:1px solid var(--border);border-radius:6px;background:var(--bg-card);color:var(--text);font-size:12px;cursor:pointer;transition:all .15s ease;white-space:nowrap}
+.preset-btn:hover,.action-btn:hover{border-color:var(--accent);color:var(--accent)}
+.preset-btn.active{background:var(--accent);border-color:var(--accent);color:#fff}
+.action-btn.primary{background:var(--accent);border-color:var(--accent);color:#fff}
+.action-btn.primary:hover{background:var(--accent-hover)}
+.main{display:flex;flex:1;overflow:hidden;flex-direction:column}
+.top-section{display:flex;border-bottom:1px solid var(--border);min-height:0}
+.panel{flex:1;display:flex;flex-direction:column;min-width:0;overflow:hidden}
+.panel-header{padding:10px 16px;font-size:12px;font-weight:600;text-transform:uppercase;letter-spacing:.5px;color:var(--text-dim);border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;flex-shrink:0}
+.divider{width:1px;background:var(--border);flex-shrink:0}
+.divider-h{height:1px;background:var(--border);flex-shrink:0}
+
+/* Source section */
+.source-config{padding:16px;background:var(--bg-editor);display:flex;flex-direction:column;gap:12px;overflow:auto;flex:1}
+.source-config select,.source-config input,.source-config textarea{background:var(--bg);color:var(--text);border:1px solid var(--border);border-radius:6px;padding:8px 12px;font-size:13px;font-family:var(--font-mono);outline:none;width:100%}
+.source-config select:focus,.source-config input:focus,.source-config textarea:focus{border-color:var(--accent)}
+.source-config textarea{resize:vertical;min-height:60px;line-height:1.5}
+.source-config label{font-size:12px;color:var(--text-dim);margin-bottom:2px;display:block}
+.source-field{display:flex;flex-direction:column;gap:4px}
+
+/* Pipeline builder */
+.pipeline-area{padding:16px;background:var(--bg-editor);display:flex;flex-direction:column;gap:12px;overflow:auto;flex:1}
+.pipeline-chain{display:flex;flex-wrap:wrap;gap:8px;align-items:center;min-height:40px}
+.pipe-step{display:flex;align-items:center;gap:6px;background:var(--bg-card);border:1px solid var(--border);border-radius:8px;padding:6px 10px;font-size:12px;font-family:var(--font-mono);position:relative;transition:border-color .2s}
+.pipe-step:hover{border-color:var(--accent)}
+.pipe-step .step-name{color:var(--cyan);font-weight:600}
+.pipe-step input{background:var(--bg);color:var(--text);border:1px solid var(--border);border-radius:4px;padding:3px 6px;font-size:12px;font-family:var(--font-mono);width:120px;outline:none}
+.pipe-step input:focus{border-color:var(--accent)}
+.pipe-step input.narrow{width:50px}
+.pipe-step .remove-step{background:none;border:none;color:var(--text-dim);cursor:pointer;font-size:14px;padding:0 2px;line-height:1}
+.pipe-step .remove-step:hover{color:var(--red)}
+.pipe-arrow{color:var(--text-dim);font-size:14px;user-select:none}
+.add-step-area{display:flex;gap:6px;flex-wrap:wrap;margin-top:8px}
+.add-step-btn{padding:4px 10px;border:1px dashed var(--border);border-radius:6px;background:transparent;color:var(--text-dim);font-size:11px;cursor:pointer;font-family:var(--font-mono);transition:all .15s}
+.add-step-btn:hover{border-color:var(--accent);color:var(--accent);border-style:solid}
+
+/* Visualization */
+.viz-section{flex:2;display:flex;flex-direction:column;overflow:hidden}
+.viz-content{flex:1;overflow:auto;padding:16px;display:flex;flex-direction:column;gap:16px}
+.viz-pipeline{display:flex;align-items:flex-start;gap:0;overflow-x:auto;padding:8px 0}
+.viz-stage{display:flex;flex-direction:column;align-items:center;min-width:100px;flex-shrink:0}
+.viz-stage-header{font-size:11px;font-family:var(--font-mono);color:var(--cyan);margin-bottom:8px;font-weight:600;text-align:center;white-space:nowrap}
+.viz-stage-values{display:flex;flex-direction:column;gap:3px;align-items:center;min-height:40px}
+.viz-value{font-size:12px;font-family:var(--font-mono);padding:2px 8px;border-radius:4px;background:var(--bg-card);border:1px solid var(--border);white-space:nowrap;transition:all .3s}
+.viz-value.active{border-color:var(--accent);background:#3b82f620;color:var(--accent)}
+.viz-value.filtered{border-color:var(--red);background:#ef444410;color:var(--red);text-decoration:line-through;opacity:.5}
+.viz-value.passed{border-color:var(--green);background:#22c55e10;color:var(--green)}
+.viz-value.pending{opacity:.3}
+.viz-arrow{display:flex;align-items:center;color:var(--text-dim);font-size:18px;padding:0 4px;margin-top:20px;flex-shrink:0}
+
+/* Code output */
+.code-output{padding:16px;background:var(--bg-editor);font-family:var(--font-mono);font-size:13px;line-height:1.7;overflow:auto;flex:1;white-space:pre-wrap;color:var(--text);position:relative}
+.code-output .keyword{color:var(--purple)}
+.code-output .fn{color:var(--cyan)}
+.code-output .string{color:var(--green)}
+.code-output .number{color:var(--orange)}
+.code-output .comment{color:var(--text-dim)}
+
+/* Comparison panel */
+.comparison{display:flex;gap:0;border-top:1px solid var(--border)}
+.compare-col{flex:1;padding:16px;display:flex;flex-direction:column;gap:8px}
+.compare-col h3{font-size:12px;font-weight:600;text-transform:uppercase;letter-spacing:.5px;color:var(--text-dim)}
+.compare-col .stat{display:flex;justify-content:space-between;font-size:12px;padding:4px 0;border-bottom:1px solid #1a1a1a}
+.compare-col .stat-value{font-family:var(--font-mono);font-weight:600}
+.compare-col .stat-value.good{color:var(--green)}
+.compare-col .stat-value.bad{color:var(--red)}
+
+/* Animation controls */
+.anim-controls{display:flex;gap:8px;align-items:center;padding:8px 16px;background:var(--bg-card);border-bottom:1px solid var(--border);flex-shrink:0}
+.anim-controls button{padding:4px 12px;border:1px solid var(--border);border-radius:4px;background:var(--bg);color:var(--text);font-size:12px;cursor:pointer;transition:all .15s}
+.anim-controls button:hover{border-color:var(--accent);color:var(--accent)}
+.anim-controls button.active{background:var(--accent);border-color:var(--accent);color:#fff}
+.anim-controls .speed-label{font-size:11px;color:var(--text-dim);margin-left:auto}
+
+/* Result display */
+.result-bar{padding:8px 16px;background:var(--bg-card);border-top:1px solid var(--border);font-size:12px;font-family:var(--font-mono);display:flex;align-items:center;gap:12px;flex-shrink:0}
+.result-bar .result-label{color:var(--text-dim)}
+.result-bar .result-value{color:var(--green)}
+.result-bar .result-error{color:var(--red)}
+
+footer{padding:12px 24px;border-top:1px solid var(--border);text-align:center;font-size:12px;color:var(--text-dim);flex-shrink:0}
+footer a{color:var(--accent);text-decoration:none}
+footer a:hover{text-decoration:underline}
+
+/* Layout adjustments */
+.top-section{flex:1;min-height:200px}
+.bottom-section{display:flex;flex-direction:column;border-top:1px solid var(--border);flex:1;min-height:200px}
+.bottom-row{display:flex;flex:1;min-height:0}
+.bottom-row .panel{overflow:hidden}
+
+@media(max-width:900px){
+  .top-section{flex-direction:column}
+  .divider{width:100%;height:1px}
+  .bottom-row{flex-direction:column}
+  .comparison{flex-direction:column}
+}
+</style>
+</head>
+<body>
+
+<header>
+  <h1><span>&lt;/&gt;</span> JS Iterator Helpers <span>Playground</span></h1>
+  <div class="browser-support" id="browserSupport">Checking browser support...</div>
+</header>
+
+<div class="toolbar">
+  <label>Presets:</label>
+  <button class="preset-btn active" data-preset="filter-map">Filter & Map</button>
+  <button class="preset-btn" data-preset="take-infinite">Take from Infinite</button>
+  <button class="preset-btn" data-preset="drop-take">Drop & Take</button>
+  <button class="preset-btn" data-preset="flatmap">FlatMap</button>
+  <button class="preset-btn" data-preset="lazy-vs-eager">Lazy vs Eager</button>
+  <button class="preset-btn" data-preset="find-stream">Find in Stream</button>
+  <button class="preset-btn" data-preset="fib-pipeline">Fibonacci Pipeline</button>
+  <button class="preset-btn" data-preset="reduce">Reduce</button>
+  <span style="width:1px;height:20px;background:var(--border);margin:0 4px"></span>
+  <button class="action-btn primary" id="runBtn" title="Run pipeline">Run</button>
+  <button class="action-btn" id="animateBtn" title="Step-by-step animation">Animate</button>
+  <button class="action-btn" id="copyBtn">Copy Code</button>
+</div>
+
+<div class="main">
+  <div class="top-section">
+    <!-- Source panel -->
+    <div class="panel" style="max-width:280px;min-width:220px">
+      <div class="panel-header">Source</div>
+      <div class="source-config">
+        <div class="source-field">
+          <label>Type</label>
+          <select id="sourceType">
+            <option value="range">Range</option>
+            <option value="array">Array</option>
+            <option value="generator">Generator</option>
+            <option value="naturals">Naturals (infinite)</option>
+            <option value="fibonacci">Fibonacci (infinite)</option>
+          </select>
+        </div>
+        <div class="source-field" id="rangeFields">
+          <label>Start</label>
+          <input type="number" id="rangeStart" value="1">
+          <label>End (inclusive)</label>
+          <input type="number" id="rangeEnd" value="20">
+        </div>
+        <div class="source-field" id="arrayField" style="display:none">
+          <label>Values (comma-separated)</label>
+          <textarea id="arrayValues">1, 2, 3, 4, 5, 6, 7, 8, 9, 10</textarea>
+        </div>
+        <div class="source-field" id="generatorField" style="display:none">
+          <label>Generator body</label>
+          <textarea id="generatorCode" rows="4">let i = 0;
+while (true) {
+  yield i++;
+}</textarea>
+        </div>
+      </div>
+    </div>
+    <div class="divider"></div>
+    <!-- Pipeline panel -->
+    <div class="panel" style="flex:1">
+      <div class="panel-header">Pipeline Builder</div>
+      <div class="pipeline-area">
+        <div class="pipeline-chain" id="pipelineChain"></div>
+        <div class="add-step-area">
+          <button class="add-step-btn" data-op="map">.map(fn)</button>
+          <button class="add-step-btn" data-op="filter">.filter(fn)</button>
+          <button class="add-step-btn" data-op="take">.take(n)</button>
+          <button class="add-step-btn" data-op="drop">.drop(n)</button>
+          <button class="add-step-btn" data-op="flatMap">.flatMap(fn)</button>
+          <button class="add-step-btn" data-op="reduce">.reduce(fn, init)</button>
+          <button class="add-step-btn" data-op="toArray">.toArray()</button>
+          <button class="add-step-btn" data-op="forEach">.forEach(fn)</button>
+          <button class="add-step-btn" data-op="some">.some(fn)</button>
+          <button class="add-step-btn" data-op="every">.every(fn)</button>
+          <button class="add-step-btn" data-op="find">.find(fn)</button>
+        </div>
+      </div>
+    </div>
+    <div class="divider"></div>
+    <!-- Code output -->
+    <div class="panel" style="max-width:340px;min-width:240px">
+      <div class="panel-header">Generated Code</div>
+      <div class="code-output" id="codeOutput"></div>
+    </div>
+  </div>
+
+  <div class="bottom-section">
+    <div class="anim-controls" id="animControls" style="display:none">
+      <button id="animPrev">Prev</button>
+      <button id="animNext">Next</button>
+      <button id="animPlay">Play</button>
+      <button id="animStop">Stop</button>
+      <span id="animStatus" style="font-size:11px;color:var(--text-dim);margin-left:8px"></span>
+      <span class="speed-label">Speed:
+        <select id="animSpeed" style="background:var(--bg);color:var(--text);border:1px solid var(--border);border-radius:4px;padding:2px 4px;font-size:11px">
+          <option value="800">Slow</option>
+          <option value="400" selected>Normal</option>
+          <option value="150">Fast</option>
+        </select>
+      </span>
+    </div>
+    <div class="bottom-row">
+      <!-- Visualization -->
+      <div class="panel" style="flex:2">
+        <div class="panel-header">Lazy Evaluation Visualization
+          <span id="lazyNote" style="font-weight:400;font-size:10px;color:var(--green)">Values flow one-at-a-time, no intermediate arrays</span>
+        </div>
+        <div class="viz-content" id="vizContent">
+          <div style="color:var(--text-dim);font-size:13px;padding:20px;text-align:center">Click <strong>Run</strong> to execute the pipeline, or <strong>Animate</strong> to step through lazy evaluation.</div>
+        </div>
+      </div>
+      <div class="divider"></div>
+      <!-- Comparison -->
+      <div class="panel" style="max-width:360px;min-width:260px">
+        <div class="panel-header">Performance Comparison</div>
+        <div style="padding:16px;overflow:auto;flex:1" id="comparisonContent">
+          <div style="color:var(--text-dim);font-size:13px;text-align:center;padding:20px">Run the pipeline to see iterator vs array comparison.</div>
+        </div>
+      </div>
+    </div>
+    <div class="result-bar">
+      <span class="result-label">Result:</span>
+      <span class="result-value" id="resultValue">—</span>
+    </div>
+  </div>
+</div>
+
+<footer>
+  <a href="https://yurukusa.github.io/dev-toolkit/">Dev Toolkit</a> — Browser-based developer tools, no install needed
+</footer>
+
+<script>
+(() => {
+'use strict';
+
+// --- Browser Support Check ---
+const hasNative = typeof Iterator !== 'undefined' && typeof Iterator.prototype?.map === 'function';
+const supportEl = document.getElementById('browserSupport');
+if (hasNative) {
+  supportEl.innerHTML = 'Iterator Helpers: <strong>Supported</strong> (native)';
+} else {
+  supportEl.innerHTML = 'Iterator Helpers: <strong class="unsupported">Not supported</strong> (using polyfill)';
+}
+
+// --- Polyfill for Iterator Helpers ---
+// Wraps any iterable into an object with lazy helper methods
+function LazyIter(gen) {
+  // gen is a function that returns an iterator (so it can be replayed)
+  this._gen = gen;
+}
+LazyIter.prototype[Symbol.iterator] = function() { return this._gen(); };
+LazyIter.prototype.map = function(fn) {
+  const self = this;
+  return new LazyIter(function*() { for (const v of self) yield fn(v); });
+};
+LazyIter.prototype.filter = function(fn) {
+  const self = this;
+  return new LazyIter(function*() { for (const v of self) if (fn(v)) yield v; });
+};
+LazyIter.prototype.take = function(n) {
+  const self = this;
+  return new LazyIter(function*() { let i = 0; for (const v of self) { if (i++ >= n) return; yield v; } });
+};
+LazyIter.prototype.drop = function(n) {
+  const self = this;
+  return new LazyIter(function*() { let i = 0; for (const v of self) { if (i++ >= n) yield v; } });
+};
+LazyIter.prototype.flatMap = function(fn) {
+  const self = this;
+  return new LazyIter(function*() { for (const v of self) yield* fn(v); });
+};
+LazyIter.prototype.reduce = function(fn, init) {
+  let acc = init;
+  for (const v of this) acc = fn(acc, v);
+  return acc;
+};
+LazyIter.prototype.toArray = function() {
+  return [...this];
+};
+LazyIter.prototype.forEach = function(fn) {
+  for (const v of this) fn(v);
+};
+LazyIter.prototype.some = function(fn) {
+  for (const v of this) if (fn(v)) return true;
+  return false;
+};
+LazyIter.prototype.every = function(fn) {
+  for (const v of this) if (!fn(v)) return false;
+  return true;
+};
+LazyIter.prototype.find = function(fn) {
+  for (const v of this) if (fn(v)) return v;
+  return undefined;
+};
+
+function makeLazy(genFn) { return new LazyIter(genFn); }
+
+// --- Pipeline State ---
+let pipeline = [];
+let animState = null;
+let animTimer = null;
+
+// --- Source Generators ---
+function getSourceIterator() {
+  const type = document.getElementById('sourceType').value;
+  switch (type) {
+    case 'range': {
+      const s = parseInt(document.getElementById('rangeStart').value) || 0;
+      const e = parseInt(document.getElementById('rangeEnd').value) || 10;
+      return { gen: function*() { for (let i = s; i <= e; i++) yield i; }, label: `range(${s}, ${e})`, values: null };
+    }
+    case 'array': {
+      const raw = document.getElementById('arrayValues').value;
+      const arr = raw.split(',').map(v => {
+        const t = v.trim();
+        if (t === '') return undefined;
+        const n = Number(t);
+        return isNaN(n) ? t : n;
+      }).filter(v => v !== undefined);
+      return { gen: function*() { yield* arr; }, label: `[${arr.map(v => typeof v === 'string' ? `"${v}"` : v).join(', ')}]`, values: arr };
+    }
+    case 'generator': {
+      const code = document.getElementById('generatorCode').value;
+      const fn = new Function(`return (function*() { ${code} })`)();
+      return { gen: fn, label: `(function*() { ... })()`, values: null };
+    }
+    case 'naturals':
+      return { gen: function*() { let i = 0; while (true) yield i++; }, label: `naturals()`, values: null };
+    case 'fibonacci':
+      return { gen: function*() { let a = 0, b = 1; while (true) { yield a; [a, b] = [b, a + b]; } }, label: `fibonacci()`, values: null };
+  }
+}
+
+// --- UI: Source type toggle ---
+document.getElementById('sourceType').addEventListener('change', function() {
+  const t = this.value;
+  document.getElementById('rangeFields').style.display = t === 'range' ? '' : 'none';
+  document.getElementById('arrayField').style.display = t === 'array' ? '' : 'none';
+  document.getElementById('generatorField').style.display = t === 'generator' ? '' : 'none';
+  updateCode();
+});
+
+// --- Pipeline UI ---
+const stepDefaults = {
+  map: { args: ['x => x * 2'], labels: ['fn'] },
+  filter: { args: ['x => x % 2 === 0'], labels: ['fn'] },
+  take: { args: ['5'], labels: ['n'], narrow: [true] },
+  drop: { args: ['5'], labels: ['n'], narrow: [true] },
+  flatMap: { args: ['x => [x, x * 10]'], labels: ['fn'] },
+  reduce: { args: ['(acc, x) => acc + x', '0'], labels: ['fn', 'init'] },
+  toArray: { args: [], labels: [] },
+  forEach: { args: ['x => console.log(x)'], labels: ['fn'] },
+  some: { args: ['x => x > 10'], labels: ['fn'] },
+  every: { args: ['x => x > 0'], labels: ['fn'] },
+  find: { args: ['x => x > 10'], labels: ['fn'] },
+};
+
+function addStep(op, argValues) {
+  const def = stepDefaults[op];
+  const args = argValues || [...def.args];
+  pipeline.push({ op, args });
+  renderPipeline();
+  updateCode();
+}
+
+function removeStep(idx) {
+  pipeline.splice(idx, 1);
+  renderPipeline();
+  updateCode();
+}
+
+function renderPipeline() {
+  const chain = document.getElementById('pipelineChain');
+  chain.innerHTML = '';
+  pipeline.forEach((step, i) => {
+    if (i > 0) {
+      const arrow = document.createElement('span');
+      arrow.className = 'pipe-arrow';
+      arrow.textContent = '\u2192';
+      chain.appendChild(arrow);
+    }
+    const el = document.createElement('div');
+    el.className = 'pipe-step';
+    const def = stepDefaults[step.op];
+    let html = `<span class="step-name">.${step.op}</span>(`;
+    step.args.forEach((arg, ai) => {
+      if (ai > 0) html += '<span style="color:var(--text-dim)">, </span>';
+      const narrow = def.narrow && def.narrow[ai] ? ' narrow' : '';
+      html += `<input class="step-arg${narrow}" data-step="${i}" data-arg="${ai}" value="${arg.replace(/"/g, '&quot;')}">`;
+    });
+    html += `) <button class="remove-step" data-idx="${i}">\u00d7</button>`;
+    el.innerHTML = html;
+    chain.appendChild(el);
+  });
+  // Event delegation
+  chain.querySelectorAll('.step-arg').forEach(inp => {
+    inp.addEventListener('input', function() {
+      const si = parseInt(this.dataset.step);
+      const ai = parseInt(this.dataset.arg);
+      pipeline[si].args[ai] = this.value;
+      updateCode();
+    });
+  });
+  chain.querySelectorAll('.remove-step').forEach(btn => {
+    btn.addEventListener('click', function() { removeStep(parseInt(this.dataset.idx)); });
+  });
+}
+
+document.querySelectorAll('.add-step-btn').forEach(btn => {
+  btn.addEventListener('click', () => addStep(btn.dataset.op));
+});
+
+// --- Code Generation ---
+function generateCode() {
+  const src = getSourceIterator();
+  let code = '';
+  // Source
+  const srcType = document.getElementById('sourceType').value;
+  if (srcType === 'range') {
+    const s = document.getElementById('rangeStart').value;
+    const e = document.getElementById('rangeEnd').value;
+    code += `// Source: range ${s} to ${e}\nfunction* range(start, end) {\n  for (let i = start; i <= end; i++) yield i;\n}\n\n`;
+    code += `const result = Iterator.from(range(${s}, ${e}))`;
+  } else if (srcType === 'array') {
+    const raw = document.getElementById('arrayValues').value;
+    code += `const arr = [${raw}];\n\n`;
+    code += `const result = arr.values()`;
+  } else if (srcType === 'naturals') {
+    code += `function* naturals() {\n  let i = 0;\n  while (true) yield i++;\n}\n\n`;
+    code += `const result = Iterator.from(naturals())`;
+  } else if (srcType === 'fibonacci') {
+    code += `function* fibonacci() {\n  let a = 0, b = 1;\n  while (true) { yield a; [a, b] = [b, a + b]; }\n}\n\n`;
+    code += `const result = Iterator.from(fibonacci())`;
+  } else if (srcType === 'generator') {
+    const gc = document.getElementById('generatorCode').value;
+    code += `function* source() {\n  ${gc.split('\n').join('\n  ')}\n}\n\n`;
+    code += `const result = Iterator.from(source())`;
+  }
+  // Pipeline
+  pipeline.forEach(step => {
+    if (step.args.length === 0) {
+      code += `\n  .${step.op}()`;
+    } else {
+      code += `\n  .${step.op}(${step.args.join(', ')})`;
+    }
+  });
+  code += ';';
+  // Eager equivalent
+  code += '\n\n// Eager array equivalent (creates intermediate arrays):\n';
+  if (srcType === 'array') {
+    code += `// const eager = [${document.getElementById('arrayValues').value}]`;
+  } else {
+    code += `// const eager = [...source()]  // must be finite!`;
+  }
+  pipeline.forEach(step => {
+    if (['map', 'filter', 'flatMap'].includes(step.op)) {
+      code += `\n//   .${step.op}(${step.args.join(', ')})`;
+    } else if (step.op === 'take') {
+      code += `\n//   .slice(0, ${step.args[0]})`;
+    } else if (step.op === 'drop') {
+      code += `\n//   .slice(${step.args[0]})`;
+    } else if (step.op === 'reduce') {
+      code += `\n//   .reduce(${step.args.join(', ')})`;
+    } else if (step.op === 'toArray') {
+      // already array
+    } else if (['some', 'every', 'find', 'forEach'].includes(step.op)) {
+      code += `\n//   .${step.op}(${step.args.join(', ')})`;
+    }
+  });
+  return code;
+}
+
+function updateCode() {
+  const code = generateCode();
+  const el = document.getElementById('codeOutput');
+  // Simple syntax highlighting
+  const escaped = code
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;');
+  const highlighted = escaped
+    .replace(/\/\/.*/g, m => `<span class="comment">${m}</span>`)
+    .replace(/\b(const|let|function|for|while|if|return|yield|true|false|undefined)\b/g, '<span class="keyword">$1</span>')
+    .replace(/\.(map|filter|take|drop|flatMap|reduce|toArray|forEach|some|every|find|values|from|slice)\b/g, '.<span class="fn">$1</span>')
+    .replace(/\b(\d+)\b/g, '<span class="number">$1</span>')
+    .replace(/(["'])(?:(?!\1).)*\1/g, m => `<span class="string">${m}</span>`);
+  el.innerHTML = highlighted;
+}
+
+// --- Execution Engine ---
+// Tracked iterator: wraps a generator, recording every value produced, and which values pass/fail at each stage
+function runPipeline() {
+  const src = getSourceIterator();
+  // Tracking data for visualization
+  const stages = [{ name: 'source', values: [] }];
+  // Build tracked pipeline
+  let current = makeLazy(src.gen);
+  // Record source values (we'll capture during execution)
+  const sourceValues = [];
+  const trackedSource = makeLazy(function*() {
+    for (const v of src.gen()) {
+      sourceValues.push(v);
+      yield v;
+    }
+  });
+  current = trackedSource;
+  const stageData = []; // {name, inputValues, outputValues, filtered}
+  pipeline.forEach((step, idx) => {
+    const prev = current;
+    const sd = { name: `.${step.op}(${step.args.join(', ')})`, input: [], output: [], filtered: [] };
+    stageData.push(sd);
+    try {
+      if (step.op === 'map') {
+        const fn = new Function('return ' + step.args[0])();
+        const p = prev;
+        current = makeLazy(function*() {
+          for (const v of p) { sd.input.push(v); const r = fn(v); sd.output.push(r); yield r; }
+        });
+      } else if (step.op === 'filter') {
+        const fn = new Function('return ' + step.args[0])();
+        const p = prev;
+        current = makeLazy(function*() {
+          for (const v of p) { sd.input.push(v); if (fn(v)) { sd.output.push(v); yield v; } else { sd.filtered.push(v); } }
+        });
+      } else if (step.op === 'take') {
+        const n = parseInt(step.args[0]) || 0;
+        const p = prev;
+        current = makeLazy(function*() {
+          let i = 0; for (const v of p) { sd.input.push(v); if (i++ >= n) return; sd.output.push(v); yield v; }
+        });
+      } else if (step.op === 'drop') {
+        const n = parseInt(step.args[0]) || 0;
+        const p = prev;
+        current = makeLazy(function*() {
+          let i = 0; for (const v of p) { sd.input.push(v); if (i++ >= n) { sd.output.push(v); yield v; } else { sd.filtered.push(v); } }
+        });
+      } else if (step.op === 'flatMap') {
+        const fn = new Function('return ' + step.args[0])();
+        const p = prev;
+        current = makeLazy(function*() {
+          for (const v of p) { sd.input.push(v); const items = [...fn(v)]; sd.output.push(...items); yield* items; }
+        });
+      } else if (step.op === 'reduce') {
+        const fn = new Function('return ' + step.args[0])();
+        const init = new Function('return ' + step.args[1])();
+        // reduce is terminal
+        let acc = init;
+        for (const v of prev) { sd.input.push(v); acc = fn(acc, v); }
+        sd.output.push(acc);
+        // Return a single-value iterator
+        const result = acc;
+        current = makeLazy(function*() { yield result; });
+        current._terminalResult = acc;
+        return; // forEach after reduce won't make sense but handle gracefully
+      } else if (step.op === 'toArray') {
+        const arr = [];
+        for (const v of prev) { sd.input.push(v); arr.push(v); }
+        sd.output = arr;
+        current = makeLazy(function*() { yield* arr; });
+        current._terminalResult = arr;
+        return;
+      } else if (step.op === 'forEach') {
+        const fn = new Function('return ' + step.args[0])();
+        const collected = [];
+        for (const v of prev) { sd.input.push(v); fn(v); collected.push(v); sd.output.push(v); }
+        current = makeLazy(function*() { yield* collected; });
+        current._terminalResult = `forEach called on ${collected.length} values`;
+        return;
+      } else if (step.op === 'some') {
+        const fn = new Function('return ' + step.args[0])();
+        let result = false;
+        for (const v of prev) { sd.input.push(v); if (fn(v)) { sd.output.push(v); result = true; break; } sd.filtered.push(v); }
+        current = makeLazy(function*() { yield result; });
+        current._terminalResult = result;
+        return;
+      } else if (step.op === 'every') {
+        const fn = new Function('return ' + step.args[0])();
+        let result = true;
+        for (const v of prev) { sd.input.push(v); if (!fn(v)) { sd.filtered.push(v); result = false; break; } sd.output.push(v); }
+        current = makeLazy(function*() { yield result; });
+        current._terminalResult = result;
+        return;
+      } else if (step.op === 'find') {
+        const fn = new Function('return ' + step.args[0])();
+        let result;
+        for (const v of prev) { sd.input.push(v); if (fn(v)) { sd.output.push(v); result = v; break; } sd.filtered.push(v); }
+        current = makeLazy(function*() { if (result !== undefined) yield result; });
+        current._terminalResult = result;
+        return;
+      }
+    } catch (e) {
+      document.getElementById('resultValue').className = 'result-error';
+      document.getElementById('resultValue').textContent = `Error in .${step.op}: ${e.message}`;
+      return;
+    }
+  });
+  // Consume
+  let result;
+  if (current._terminalResult !== undefined) {
+    result = current._terminalResult;
+  } else {
+    // Collect up to 1000 to prevent infinite hang
+    const arr = [];
+    let count = 0;
+    for (const v of current) {
+      arr.push(v);
+      if (++count >= 1000) break;
+    }
+    result = arr;
+  }
+  // Update source stage
+  stages[0].values = sourceValues;
+  return { result, sourceValues, stageData, pipeline: [...pipeline] };
+}
+
+// --- Visualization ---
+function renderViz(data) {
+  const container = document.getElementById('vizContent');
+  container.innerHTML = '';
+  if (!data) return;
+
+  const vizPipeline = document.createElement('div');
+  vizPipeline.className = 'viz-pipeline';
+
+  // Source stage
+  const srcStage = createVizStage('Source', data.sourceValues.slice(0, 30), 'passed');
+  vizPipeline.appendChild(srcStage);
+
+  // Each pipeline stage
+  data.stageData.forEach((sd, idx) => {
+    vizPipeline.appendChild(createArrow());
+    const stage = document.createElement('div');
+    stage.className = 'viz-stage';
+    const header = document.createElement('div');
+    header.className = 'viz-stage-header';
+    header.textContent = sd.name;
+    stage.appendChild(header);
+    const vals = document.createElement('div');
+    vals.className = 'viz-stage-values';
+    // Show output values
+    const display = sd.output.slice(0, 30);
+    display.forEach(v => {
+      const el = document.createElement('div');
+      el.className = 'viz-value passed';
+      el.textContent = formatValue(v);
+      vals.appendChild(el);
+    });
+    // Show filtered values
+    sd.filtered.slice(0, 10).forEach(v => {
+      const el = document.createElement('div');
+      el.className = 'viz-value filtered';
+      el.textContent = formatValue(v);
+      vals.appendChild(el);
+    });
+    if (sd.output.length > 30) {
+      const more = document.createElement('div');
+      more.className = 'viz-value';
+      more.style.color = 'var(--text-dim)';
+      more.textContent = `... +${sd.output.length - 30} more`;
+      vals.appendChild(more);
+    }
+    stage.appendChild(vals);
+    vizPipeline.appendChild(stage);
+  });
+
+  container.appendChild(vizPipeline);
+
+  // Info panel
+  const info = document.createElement('div');
+  info.style.cssText = 'padding:12px 16px;background:var(--bg-card);border-radius:8px;border:1px solid var(--border);font-size:12px;line-height:1.8';
+  const totalSourceConsumed = data.sourceValues.length;
+  const totalOps = data.stageData.reduce((sum, sd) => sum + sd.input.length, 0) + totalSourceConsumed;
+  info.innerHTML = `
+    <div style="color:var(--green);font-weight:600;margin-bottom:4px">Lazy Evaluation Summary</div>
+    <div><span style="color:var(--text-dim)">Source values consumed:</span> <strong>${totalSourceConsumed}</strong></div>
+    <div><span style="color:var(--text-dim)">Total operations across pipeline:</span> <strong>${totalOps}</strong></div>
+    <div><span style="color:var(--text-dim)">Intermediate arrays created:</span> <strong style="color:var(--green)">0</strong> (lazy iterator)</div>
+  `;
+  container.appendChild(info);
+}
+
+function createVizStage(name, values, cls) {
+  const stage = document.createElement('div');
+  stage.className = 'viz-stage';
+  const header = document.createElement('div');
+  header.className = 'viz-stage-header';
+  header.textContent = name;
+  stage.appendChild(header);
+  const vals = document.createElement('div');
+  vals.className = 'viz-stage-values';
+  values.forEach(v => {
+    const el = document.createElement('div');
+    el.className = 'viz-value ' + (cls || '');
+    el.textContent = formatValue(v);
+    vals.appendChild(el);
+  });
+  if (values.length === 0) {
+    const el = document.createElement('div');
+    el.className = 'viz-value';
+    el.style.color = 'var(--text-dim)';
+    el.textContent = '(empty)';
+    vals.appendChild(el);
+  }
+  stage.appendChild(vals);
+  return stage;
+}
+
+function createArrow() {
+  const a = document.createElement('div');
+  a.className = 'viz-arrow';
+  a.textContent = '\u2192';
+  return a;
+}
+
+function formatValue(v) {
+  if (v === undefined) return 'undefined';
+  if (v === null) return 'null';
+  if (typeof v === 'string') return `"${v}"`;
+  if (Array.isArray(v)) return `[${v.join(', ')}]`;
+  if (typeof v === 'boolean') return String(v);
+  return String(v);
+}
+
+// --- Performance Comparison ---
+function renderComparison(data) {
+  const container = document.getElementById('comparisonContent');
+  if (!data) { container.innerHTML = '<div style="color:var(--text-dim);font-size:13px;text-align:center;padding:20px">Run the pipeline to see comparison.</div>'; return; }
+
+  const totalSourceConsumed = data.sourceValues.length;
+  const iterOps = data.stageData.reduce((sum, sd) => sum + sd.input.length, 0) + totalSourceConsumed;
+
+  // Calculate eager ops: all source values go through every stage
+  const srcType = document.getElementById('sourceType').value;
+  let eagerSourceCount = totalSourceConsumed;
+  // For eager, all source values must be materialized first
+  if (srcType === 'naturals' || srcType === 'fibonacci') {
+    eagerSourceCount = '\u221e (impossible)';
+  }
+
+  let eagerOps = 0;
+  let eagerArrays = 0;
+  if (typeof eagerSourceCount === 'number') {
+    let currentCount = eagerSourceCount;
+    data.pipeline.forEach(step => {
+      eagerOps += currentCount;
+      if (['map', 'filter', 'flatMap'].includes(step.op)) {
+        eagerArrays++;
+        if (step.op === 'filter') {
+          // Estimate ~half pass
+          currentCount = Math.ceil(currentCount * 0.5);
+        } else if (step.op === 'flatMap') {
+          currentCount = currentCount * 2; // rough estimate
+        }
+      } else if (step.op === 'take') {
+        currentCount = Math.min(currentCount, parseInt(step.args[0]) || 0);
+      } else if (step.op === 'drop') {
+        currentCount = Math.max(0, currentCount - (parseInt(step.args[0]) || 0));
+      }
+    });
+  }
+
+  const isInfinite = srcType === 'naturals' || srcType === 'fibonacci';
+
+  container.innerHTML = `
+    <div style="display:flex;gap:16px;flex-direction:column">
+      <div>
+        <h3 style="font-size:12px;font-weight:600;text-transform:uppercase;letter-spacing:.5px;color:var(--cyan);margin-bottom:8px">Iterator (Lazy)</h3>
+        <div style="font-size:12px;display:flex;flex-direction:column;gap:4px">
+          <div style="display:flex;justify-content:space-between;padding:4px 0;border-bottom:1px solid var(--border)">
+            <span style="color:var(--text-dim)">Source values consumed</span>
+            <span style="font-family:var(--font-mono);font-weight:600;color:var(--green)">${totalSourceConsumed}</span>
+          </div>
+          <div style="display:flex;justify-content:space-between;padding:4px 0;border-bottom:1px solid var(--border)">
+            <span style="color:var(--text-dim)">Total operations</span>
+            <span style="font-family:var(--font-mono);font-weight:600;color:var(--green)">${iterOps}</span>
+          </div>
+          <div style="display:flex;justify-content:space-between;padding:4px 0;border-bottom:1px solid var(--border)">
+            <span style="color:var(--text-dim)">Intermediate arrays</span>
+            <span style="font-family:var(--font-mono);font-weight:600;color:var(--green)">0</span>
+          </div>
+          <div style="display:flex;justify-content:space-between;padding:4px 0">
+            <span style="color:var(--text-dim)">Memory</span>
+            <span style="font-family:var(--font-mono);font-weight:600;color:var(--green)">O(1)</span>
+          </div>
+        </div>
+      </div>
+      <div style="width:100%;height:1px;background:var(--border)"></div>
+      <div>
+        <h3 style="font-size:12px;font-weight:600;text-transform:uppercase;letter-spacing:.5px;color:var(--orange);margin-bottom:8px">Array (Eager)</h3>
+        <div style="font-size:12px;display:flex;flex-direction:column;gap:4px">
+          <div style="display:flex;justify-content:space-between;padding:4px 0;border-bottom:1px solid var(--border)">
+            <span style="color:var(--text-dim)">Source values consumed</span>
+            <span style="font-family:var(--font-mono);font-weight:600;color:${isInfinite ? 'var(--red)' : 'var(--orange)'}">${isInfinite ? '\u221e (impossible!)' : eagerSourceCount}</span>
+          </div>
+          <div style="display:flex;justify-content:space-between;padding:4px 0;border-bottom:1px solid var(--border)">
+            <span style="color:var(--text-dim)">Total operations</span>
+            <span style="font-family:var(--font-mono);font-weight:600;color:${isInfinite ? 'var(--red)' : 'var(--orange)'}">${isInfinite ? '\u221e' : eagerOps}</span>
+          </div>
+          <div style="display:flex;justify-content:space-between;padding:4px 0;border-bottom:1px solid var(--border)">
+            <span style="color:var(--text-dim)">Intermediate arrays</span>
+            <span style="font-family:var(--font-mono);font-weight:600;color:var(--red)">${isInfinite ? 'N/A' : eagerArrays}</span>
+          </div>
+          <div style="display:flex;justify-content:space-between;padding:4px 0">
+            <span style="color:var(--text-dim)">Memory</span>
+            <span style="font-family:var(--font-mono);font-weight:600;color:var(--red)">${isInfinite ? '\u221e' : 'O(n)'}</span>
+          </div>
+        </div>
+      </div>
+      ${iterOps < eagerOps || isInfinite ? `<div style="padding:8px 12px;background:#22c55e10;border:1px solid #22c55e33;border-radius:6px;font-size:11px;color:var(--green)">
+        ${isInfinite ? 'Iterator handles infinite sequences that arrays cannot!' : `Iterator saved ${eagerOps - iterOps} operations (${Math.round((1 - iterOps/eagerOps) * 100)}% fewer) and used no intermediate arrays.`}
+      </div>` : ''}
+    </div>
+  `;
+}
+
+// --- Animation Engine ---
+function startAnimation() {
+  stopAnimation();
+  document.getElementById('animControls').style.display = 'flex';
+
+  const src = getSourceIterator();
+  // Build animation frames: for each value, show it flowing through stages
+  const frames = [];
+  const allStages = ['Source', ...pipeline.map(s => `.${s.op}(${s.args.join(', ')})`)];
+  const stageOutputs = allStages.map(() => []);
+  const stageFiltered = allStages.map(() => []);
+
+  // Simulate lazy evaluation step by step
+  // For each value requested by the terminal, trace it back through the pipeline
+  const gen = src.gen();
+  const MAX_VALUES = 50;
+  let consumed = 0;
+
+  // Simple simulation: pull values through pipeline one at a time
+  function simulateStep(sourceVal) {
+    let val = sourceVal;
+    let passedAll = true;
+    const journey = [{ stage: 0, value: val, status: 'active' }];
+    stageOutputs[0].push(val);
+
+    for (let i = 0; i < pipeline.length; i++) {
+      const step = pipeline[i];
+      const stageIdx = i + 1;
+      try {
+        if (step.op === 'map') {
+          const fn = new Function('return ' + step.args[0])();
+          val = fn(val);
+          journey.push({ stage: stageIdx, value: val, status: 'passed' });
+          stageOutputs[stageIdx].push(val);
+        } else if (step.op === 'filter') {
+          const fn = new Function('return ' + step.args[0])();
+          if (fn(val)) {
+            journey.push({ stage: stageIdx, value: val, status: 'passed' });
+            stageOutputs[stageIdx].push(val);
+          } else {
+            journey.push({ stage: stageIdx, value: val, status: 'filtered' });
+            stageFiltered[stageIdx].push(val);
+            passedAll = false;
+          }
+        } else if (step.op === 'take') {
+          const n = parseInt(step.args[0]) || 0;
+          if (stageOutputs[stageIdx].length < n) {
+            journey.push({ stage: stageIdx, value: val, status: 'passed' });
+            stageOutputs[stageIdx].push(val);
+          } else {
+            journey.push({ stage: stageIdx, value: val, status: 'filtered' });
+            passedAll = false;
+            return { journey, passedAll: false, done: true };
+          }
+        } else if (step.op === 'drop') {
+          const n = parseInt(step.args[0]) || 0;
+          const totalSeen = stageOutputs[stageIdx].length + stageFiltered[stageIdx].length;
+          if (totalSeen < n) {
+            journey.push({ stage: stageIdx, value: val, status: 'filtered' });
+            stageFiltered[stageIdx].push(val);
+            passedAll = false;
+          } else {
+            journey.push({ stage: stageIdx, value: val, status: 'passed' });
+            stageOutputs[stageIdx].push(val);
+          }
+        } else if (step.op === 'flatMap') {
+          const fn = new Function('return ' + step.args[0])();
+          const items = [...fn(val)];
+          journey.push({ stage: stageIdx, value: `[${items.join(', ')}]`, status: 'passed' });
+          stageOutputs[stageIdx].push(...items);
+        } else if (step.op === 'find') {
+          const fn = new Function('return ' + step.args[0])();
+          if (fn(val)) {
+            journey.push({ stage: stageIdx, value: val, status: 'passed' });
+            stageOutputs[stageIdx].push(val);
+            return { journey, passedAll: true, done: true };
+          } else {
+            journey.push({ stage: stageIdx, value: val, status: 'filtered' });
+            stageFiltered[stageIdx].push(val);
+            passedAll = false;
+          }
+        } else if (step.op === 'some') {
+          const fn = new Function('return ' + step.args[0])();
+          if (fn(val)) {
+            journey.push({ stage: stageIdx, value: val, status: 'passed' });
+            stageOutputs[stageIdx].push(val);
+            return { journey, passedAll: true, done: true };
+          } else {
+            journey.push({ stage: stageIdx, value: val, status: 'filtered' });
+            stageFiltered[stageIdx].push(val);
+            passedAll = false;
+          }
+        } else if (step.op === 'every') {
+          const fn = new Function('return ' + step.args[0])();
+          if (!fn(val)) {
+            journey.push({ stage: stageIdx, value: val, status: 'filtered' });
+            stageFiltered[stageIdx].push(val);
+            return { journey, passedAll: false, done: true };
+          } else {
+            journey.push({ stage: stageIdx, value: val, status: 'passed' });
+            stageOutputs[stageIdx].push(val);
+          }
+        } else {
+          // toArray, forEach, reduce — terminal but pass through for viz
+          journey.push({ stage: stageIdx, value: val, status: 'passed' });
+          stageOutputs[stageIdx].push(val);
+        }
+      } catch (e) {
+        journey.push({ stage: stageIdx, value: 'Error: ' + e.message, status: 'filtered' });
+        passedAll = false;
+      }
+      if (!passedAll) break;
+    }
+    return { journey, passedAll, done: false };
+  }
+
+  let done = false;
+  while (!done && consumed < MAX_VALUES) {
+    const next = gen.next();
+    if (next.done) break;
+    consumed++;
+    const result = simulateStep(next.value);
+    frames.push({ journey: result.journey, stageOutputs: stageOutputs.map(a => [...a]), stageFiltered: stageFiltered.map(a => [...a]) });
+    if (result.done) { done = true; }
+  }
+
+  animState = { frames, allStages, currentFrame: -1, stageOutputs, stageFiltered };
+  updateAnimStatus();
+  renderAnimFrame(-1);
+}
+
+function renderAnimFrame(frameIdx) {
+  const container = document.getElementById('vizContent');
+  container.innerHTML = '';
+
+  if (!animState) return;
+  const { frames, allStages } = animState;
+
+  const vizPipeline = document.createElement('div');
+  vizPipeline.className = 'viz-pipeline';
+
+  allStages.forEach((stageName, si) => {
+    if (si > 0) vizPipeline.appendChild(createArrow());
+    const stage = document.createElement('div');
+    stage.className = 'viz-stage';
+    const header = document.createElement('div');
+    header.className = 'viz-stage-header';
+    header.textContent = stageName;
+    stage.appendChild(header);
+    const vals = document.createElement('div');
+    vals.className = 'viz-stage-values';
+
+    // Show values that have accumulated up to this frame
+    const snapshot = frameIdx >= 0 && frameIdx < frames.length ? frames[frameIdx] : null;
+    const outputs = snapshot ? snapshot.stageOutputs[si] : [];
+    const filtered = snapshot ? snapshot.stageFiltered[si] : [];
+
+    // Current frame's journey highlight
+    const journey = snapshot ? snapshot.journey : null;
+    const activeInStage = journey ? journey.find(j => j.stage === si) : null;
+
+    outputs.forEach((v, vi) => {
+      const el = document.createElement('div');
+      const isActive = activeInStage && activeInStage.status !== 'filtered' &&
+        vi === outputs.length - 1 && frameIdx === animState.currentFrame;
+      el.className = 'viz-value ' + (isActive ? 'active' : 'passed');
+      el.textContent = formatValue(v);
+      vals.appendChild(el);
+    });
+    // Show filtered for current frame only
+    if (activeInStage && activeInStage.status === 'filtered') {
+      const el = document.createElement('div');
+      el.className = 'viz-value filtered';
+      el.textContent = formatValue(activeInStage.value);
+      vals.appendChild(el);
+    }
+    if (outputs.length === 0 && (!activeInStage || activeInStage.status !== 'filtered')) {
+      const el = document.createElement('div');
+      el.className = 'viz-value pending';
+      el.textContent = '\u00b7\u00b7\u00b7';
+      vals.appendChild(el);
+    }
+
+    stage.appendChild(vals);
+    vizPipeline.appendChild(stage);
+  });
+
+  container.appendChild(vizPipeline);
+
+  // Journey description
+  if (frameIdx >= 0 && frameIdx < frames.length) {
+    const journey = frames[frameIdx].journey;
+    const desc = document.createElement('div');
+    desc.style.cssText = 'padding:8px 12px;background:var(--bg-card);border:1px solid var(--border);border-radius:6px;font-size:11px;font-family:var(--font-mono);color:var(--text-dim);line-height:1.8';
+    const steps = journey.map(j => {
+      const color = j.status === 'passed' ? 'var(--green)' : j.status === 'filtered' ? 'var(--red)' : 'var(--accent)';
+      return `<span style="color:${color}">${allStages[j.stage]}: ${formatValue(j.value)} (${j.status})</span>`;
+    });
+    desc.innerHTML = `Step ${frameIdx + 1}/${frames.length}: ${steps.join(' \u2192 ')}`;
+    container.appendChild(desc);
+  }
+}
+
+function updateAnimStatus() {
+  if (!animState) return;
+  document.getElementById('animStatus').textContent =
+    `Frame ${animState.currentFrame + 1} / ${animState.frames.length}`;
+}
+
+function animNext() {
+  if (!animState || animState.currentFrame >= animState.frames.length - 1) return;
+  animState.currentFrame++;
+  renderAnimFrame(animState.currentFrame);
+  updateAnimStatus();
+}
+
+function animPrev() {
+  if (!animState || animState.currentFrame <= 0) return;
+  animState.currentFrame--;
+  renderAnimFrame(animState.currentFrame);
+  updateAnimStatus();
+}
+
+function animPlay() {
+  if (!animState) return;
+  if (animTimer) { clearInterval(animTimer); animTimer = null; document.getElementById('animPlay').textContent = 'Play'; return; }
+  document.getElementById('animPlay').textContent = 'Pause';
+  const speed = parseInt(document.getElementById('animSpeed').value) || 400;
+  animTimer = setInterval(() => {
+    if (animState.currentFrame >= animState.frames.length - 1) {
+      clearInterval(animTimer);
+      animTimer = null;
+      document.getElementById('animPlay').textContent = 'Play';
+      return;
+    }
+    animNext();
+  }, speed);
+}
+
+function stopAnimation() {
+  if (animTimer) { clearInterval(animTimer); animTimer = null; }
+  animState = null;
+  document.getElementById('animControls').style.display = 'none';
+}
+
+document.getElementById('animNext').addEventListener('click', animNext);
+document.getElementById('animPrev').addEventListener('click', animPrev);
+document.getElementById('animPlay').addEventListener('click', animPlay);
+document.getElementById('animStop').addEventListener('click', () => {
+  stopAnimation();
+  document.getElementById('vizContent').innerHTML = '<div style="color:var(--text-dim);font-size:13px;padding:20px;text-align:center">Animation stopped. Click <strong>Run</strong> or <strong>Animate</strong> to continue.</div>';
+});
+
+// --- Run & Animate buttons ---
+document.getElementById('runBtn').addEventListener('click', () => {
+  stopAnimation();
+  try {
+    const data = runPipeline();
+    if (!data) return;
+    renderViz(data);
+    renderComparison(data);
+    const rv = document.getElementById('resultValue');
+    rv.className = 'result-value';
+    if (Array.isArray(data.result)) {
+      rv.textContent = `[${data.result.slice(0, 50).map(formatValue).join(', ')}${data.result.length > 50 ? ', ...' : ''}] (${data.result.length} items)`;
+    } else {
+      rv.textContent = formatValue(data.result);
+    }
+  } catch (e) {
+    document.getElementById('resultValue').className = 'result-error';
+    document.getElementById('resultValue').textContent = `Error: ${e.message}`;
+  }
+});
+
+document.getElementById('animateBtn').addEventListener('click', () => {
+  try {
+    startAnimation();
+    // Also compute comparison
+    const data = runPipeline();
+    if (data) renderComparison(data);
+  } catch (e) {
+    document.getElementById('resultValue').className = 'result-error';
+    document.getElementById('resultValue').textContent = `Error: ${e.message}`;
+  }
+});
+
+document.getElementById('copyBtn').addEventListener('click', () => {
+  const code = generateCode();
+  navigator.clipboard.writeText(code).then(() => {
+    const btn = document.getElementById('copyBtn');
+    btn.textContent = 'Copied!';
+    setTimeout(() => { btn.textContent = 'Copy Code'; }, 1500);
+  });
+});
+
+// --- Presets ---
+const presets = {
+  'filter-map': {
+    source: 'range', rangeStart: 1, rangeEnd: 20,
+    pipeline: [
+      { op: 'filter', args: ['x => x % 2 === 0'] },
+      { op: 'map', args: ['x => x * 2'] },
+      { op: 'toArray', args: [] }
+    ]
+  },
+  'take-infinite': {
+    source: 'naturals',
+    pipeline: [
+      { op: 'take', args: ['5'] },
+      { op: 'toArray', args: [] }
+    ]
+  },
+  'drop-take': {
+    source: 'range', rangeStart: 1, rangeEnd: 100,
+    pipeline: [
+      { op: 'drop', args: ['10'] },
+      { op: 'take', args: ['5'] },
+      { op: 'toArray', args: [] }
+    ]
+  },
+  'flatmap': {
+    source: 'array', arrayValues: '"hello", "world", "hi"',
+    pipeline: [
+      { op: 'flatMap', args: ['s => [...s]'] },
+      { op: 'toArray', args: [] }
+    ]
+  },
+  'lazy-vs-eager': {
+    source: 'range', rangeStart: 1, rangeEnd: 1000,
+    pipeline: [
+      { op: 'map', args: ['x => x * x'] },
+      { op: 'filter', args: ['x => x % 2 === 0'] },
+      { op: 'take', args: ['3'] },
+      { op: 'toArray', args: [] }
+    ]
+  },
+  'find-stream': {
+    source: 'naturals',
+    pipeline: [
+      { op: 'map', args: ['x => x * x'] },
+      { op: 'find', args: ['x => x > 100'] }
+    ]
+  },
+  'fib-pipeline': {
+    source: 'fibonacci',
+    pipeline: [
+      { op: 'filter', args: ['x => x % 2 === 0'] },
+      { op: 'take', args: ['10'] },
+      { op: 'toArray', args: [] }
+    ]
+  },
+  'reduce': {
+    source: 'range', rangeStart: 1, rangeEnd: 100,
+    pipeline: [
+      { op: 'reduce', args: ['(acc, x) => acc + x', '0'] }
+    ]
+  }
+};
+
+function applyPreset(name) {
+  const p = presets[name];
+  if (!p) return;
+  // Source
+  document.getElementById('sourceType').value = p.source;
+  document.getElementById('sourceType').dispatchEvent(new Event('change'));
+  if (p.source === 'range') {
+    document.getElementById('rangeStart').value = p.rangeStart || 1;
+    document.getElementById('rangeEnd').value = p.rangeEnd || 20;
+  } else if (p.source === 'array') {
+    document.getElementById('arrayValues').value = p.arrayValues || '';
+  } else if (p.source === 'generator') {
+    document.getElementById('generatorCode').value = p.generatorCode || '';
+  }
+  // Pipeline
+  pipeline = p.pipeline.map(s => ({ op: s.op, args: [...s.args] }));
+  renderPipeline();
+  updateCode();
+  // Auto-run
+  stopAnimation();
+  try {
+    const data = runPipeline();
+    if (data) {
+      renderViz(data);
+      renderComparison(data);
+      const rv = document.getElementById('resultValue');
+      rv.className = 'result-value';
+      if (Array.isArray(data.result)) {
+        rv.textContent = `[${data.result.slice(0, 50).map(formatValue).join(', ')}${data.result.length > 50 ? ', ...' : ''}] (${data.result.length} items)`;
+      } else {
+        rv.textContent = formatValue(data.result);
+      }
+    }
+  } catch (e) {}
+}
+
+document.querySelectorAll('.preset-btn').forEach(btn => {
+  btn.addEventListener('click', function() {
+    document.querySelectorAll('.preset-btn').forEach(b => b.classList.remove('active'));
+    this.classList.add('active');
+    applyPreset(this.dataset.preset);
+  });
+});
+
+// --- Init ---
+applyPreset('filter-map');
+
+})();
+</script>
+</body>
+</html>
